@@ -1,5 +1,5 @@
 // Вся работа с задачами: валидация и запросы к БД.
-// Маршруты ничего не знают про SQL — в лабе 2 этот файл переиспользуется в REST API.
+// Маршруты ничего не знают про SQL
 const fs = require('fs/promises');
 const path = require('path');
 const db = require('../db');

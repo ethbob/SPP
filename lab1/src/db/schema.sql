@@ -5,7 +5,6 @@ CREATE TABLE IF NOT EXISTS tasks (
   status      VARCHAR(20)  NOT NULL DEFAULT 'todo'
               CHECK (status IN ('todo', 'in_progress', 'done')),
   due_date    DATE,
-  -- задел на лабу 3 (пользователи и роли), пока не используется
   user_id     INTEGER,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
