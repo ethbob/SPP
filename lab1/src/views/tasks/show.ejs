@@ -1,0 +1,70 @@
+<%- include('../partials/header') %>
+
+<p><a class="link-muted" href="/tasks">← Все задачи</a></p>
+
+<div class="task-head">
+  <h1><%= task.title %></h1>
+  <%- include('../partials/status-badge', { task }) %>
+</div>
+
+<div class="card">
+  <dl class="meta">
+    <dt>Срок</dt>
+    <dd class="<%= task.overdue ? 'overdue' : '' %>">
+      <%= task.due_date ? formatDate(task.due_date) : 'не указан' %>
+      <% if (task.overdue) { %> · просрочена<% } %>
+    </dd>
+    <dt>Создана</dt>
+    <dd><%= task.created_at.toLocaleString('ru-RU') %></dd>
+  </dl>
+
+  <% if (task.description) { %>
+    <div class="description"><%= task.description %></div>
+  <% } else { %>
+    <p class="link-muted">Описания нет.</p>
+  <% } %>
+
+  <div class="actions">
+    <form class="inline-status" method="post" action="/tasks/<%= task.id %>/status">
+      <select name="status" aria-label="Статус задачи">
+        <% for (const [key, label] of Object.entries(STATUSES)) { %>
+          <option value="<%= key %>" <%= task.status === key ? 'selected' : '' %>><%= label %></option>
+        <% } %>
+      </select>
+      <button class="btn" type="submit">Изменить статус</button>
+    </form>
+    <a class="btn" href="/tasks/<%= task.id %>/edit">Редактировать</a>
+    <form method="post" action="/tasks/<%= task.id %>/delete" onsubmit="return confirm('Удалить задачу вместе с файлами?')">
+      <button class="btn btn-danger" type="submit">Удалить</button>
+    </form>
+  </div>
+</div>
+
+<h2>Файлы</h2>
+<div class="card">
+  <% if (task.attachments.length === 0) { %>
+    <p class="link-muted">Файлов пока нет.</p>
+  <% } else { %>
+    <ul class="files">
+      <% for (const a of task.attachments) { %>
+        <li>
+          <a href="/attachments/<%= a.id %>"><%= a.original_name %></a>
+          <span class="link-muted"><%= formatSize(a.size) %></span>
+          <form method="post" action="/attachments/<%= a.id %>/delete">
+            <button class="btn btn-small btn-ghost" type="submit" title="Удалить файл">✕</button>
+          </form>
+        </li>
+      <% } %>
+    </ul>
+  <% } %>
+
+  <%# Загрузка файлов: enctype обязателен, иначе файл не уйдёт на сервер %>
+  <form class="upload" method="post" action="/tasks/<%= task.id %>/attachments" enctype="multipart/form-data">
+    <input type="file" name="files" multiple>
+    <button class="btn" type="submit">Загрузить</button>
+  </form>
+  <div class="hint">До 5 файлов за раз, каждый не больше <%= maxFileSize %> МБ.</div>
+  <% if (uploadError) { %><div class="error"><%= uploadError %></div><% } %>
+</div>
+
+<%- include('../partials/footer') %>

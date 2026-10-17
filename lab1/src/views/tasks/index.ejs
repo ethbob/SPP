@@ -1,0 +1,66 @@
+<%- include('../partials/header') %>
+
+<h1>Список задач</h1>
+
+<%# Фильтр — обычная GET-форма, параметр попадает в URL: /tasks?status=done %>
+<form class="filter" method="get" action="/tasks">
+  <label for="status-filter">Статус:</label>
+  <select id="status-filter" name="status">
+    <option value="" <%= status === '' ? 'selected' : '' %>>Все (<%= counts.all %>)</option>
+    <% for (const [key, label] of Object.entries(STATUSES)) { %>
+      <option value="<%= key %>" <%= status === key ? 'selected' : '' %>><%= label %> (<%= counts[key] %>)</option>
+    <% } %>
+  </select>
+  <button class="btn" type="submit">Показать</button>
+  <% if (status) { %><a class="link-muted" href="/tasks">Сбросить</a><% } %>
+</form>
+
+<% if (tasks.length === 0) { %>
+  <div class="empty">
+    <% if (status) { %>
+      Задач со статусом «<%= STATUSES[status] %>» нет.
+    <% } else { %>
+      Задач пока нет. <a href="/tasks/new">Создайте первую</a>.
+    <% } %>
+  </div>
+<% } else { %>
+  <table class="tasks">
+    <thead>
+      <tr>
+        <th>Задача</th>
+        <th>Срок</th>
+        <th>Файлы</th>
+        <th>Статус</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% for (const task of tasks) { %>
+        <tr class="<%= task.status === 'done' ? 'is-done' : '' %>">
+          <td>
+            <a class="task-title" href="/tasks/<%= task.id %>"><%= task.title %></a>
+            <% if (task.description) { %><div class="task-desc"><%= task.description.length > 90 ? task.description.slice(0, 90) + '…' : task.description %></div><% } %>
+          </td>
+          <td class="nowrap <%= task.overdue ? 'overdue' : '' %>">
+            <%= task.due_date ? formatDate(task.due_date) : '—' %>
+            <% if (task.overdue) { %><div class="overdue-note">просрочена</div><% } %>
+          </td>
+          <td class="nowrap"><%= task.attachments_count || '—' %></td>
+          <td>
+            <%# Смена статуса прямо из списка: маленькая форма на каждую строку %>
+            <form class="inline-status" method="post" action="/tasks/<%= task.id %>/status">
+              <input type="hidden" name="redirect" value="/tasks<%= status ? '?status=' + status : '' %>">
+              <select name="status" aria-label="Статус задачи">
+                <% for (const [key, label] of Object.entries(STATUSES)) { %>
+                  <option value="<%= key %>" <%= task.status === key ? 'selected' : '' %>><%= label %></option>
+                <% } %>
+              </select>
+              <button class="btn btn-small" type="submit">OK</button>
+            </form>
+          </td>
+        </tr>
+      <% } %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('../partials/footer') %>

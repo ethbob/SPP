@@ -1,0 +1,23 @@
+{
+  "name": "spp-lab1-tasks",
+  "version": "1.0.0",
+  "description": "СПП, лабораторная работа 1: список задач с серверным рендерингом (Express + EJS + PostgreSQL)",
+  "main": "src/app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "multer": "^2.0.2",
+    "pg": "^8.13.1"
+  }
+}

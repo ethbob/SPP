@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+
+<% const isNew = !task.id; %>
+<p><a class="link-muted" href="<%= isNew ? '/tasks' : '/tasks/' + task.id %>">← Назад</a></p>
+<h1><%= isNew ? 'Новая задача' : 'Редактирование задачи' %></h1>
+
+<% if (Object.keys(errors).length) { %>
+  <div class="alert">Проверьте поля формы.</div>
+<% } %>
+
+<form class="card form" method="post" action="<%= action %>" <%- isNew ? 'enctype="multipart/form-data"' : '' %> novalidate>
+  <div class="field">
+    <label for="title">Название *</label>
+    <input id="title" name="title" maxlength="200" value="<%= task.title %>" class="<%= errors.title ? 'invalid' : '' %>" autofocus>
+    <% if (errors.title) { %><div class="error"><%= errors.title %></div><% } %>
+  </div>
+
+  <div class="field">
+    <label for="description">Описание</label>
+    <textarea id="description" name="description" rows="4" class="<%= errors.description ? 'invalid' : '' %>"><%= task.description %></textarea>
+    <% if (errors.description) { %><div class="error"><%= errors.description %></div><% } %>
+  </div>
+
+  <div class="row">
+    <div class="field">
+      <label for="status">Статус</label>
+      <select id="status" name="status">
+        <% for (const [key, label] of Object.entries(STATUSES)) { %>
+          <option value="<%= key %>" <%= task.status === key ? 'selected' : '' %>><%= label %></option>
+        <% } %>
+      </select>
+      <% if (errors.status) { %><div class="error"><%= errors.status %></div><% } %>
+    </div>
+
+    <div class="field">
+      <label for="due_date">Ожидаемая дата завершения</label>
+      <input id="due_date" name="due_date" type="date" value="<%= task.due_date %>" class="<%= errors.due_date ? 'invalid' : '' %>">
+      <% if (errors.due_date) { %><div class="error"><%= errors.due_date %></div><% } %>
+    </div>
+  </div>
+
+  <% if (isNew) { %>
+    <div class="field">
+      <label for="files">Файлы</label>
+      <input id="files" name="files" type="file" multiple>
+      <div class="hint">Можно выбрать несколько файлов. Добавить их можно и позже, на странице задачи.</div>
+    </div>
+  <% } %>
+
+  <div class="actions">
+    <button class="btn btn-primary" type="submit"><%= isNew ? 'Создать' : 'Сохранить' %></button>
+  </div>
+</form>
+
+<%- include('../partials/footer') %>
