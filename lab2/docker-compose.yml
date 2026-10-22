@@ -1,0 +1,46 @@
+# Своё имя проекта, чтобы контейнеры и тома не пересекались с другими лабами
+name: spp-lab2
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: spp_lab2_db
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: tasks
+    ports:
+      - "5434:5432" # только для локальной разработки (npm run dev); 5432/5433 уже заняты
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d tasks"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: ./server
+    container_name: spp_lab2_api
+    environment:
+      DATABASE_URL: postgres://app:app@db:5432/tasks
+      MAX_FILE_SIZE_MB: 10
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build: ./client
+    container_name: spp_lab2_web
+    ports:
+      - "8080:80" # приложение: http://localhost:8080
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  uploads:
