@@ -1,5 +1,6 @@
 // Всплывающие уведомления: успех и ошибки API.
 import { createContext, useCallback, useContext, useState } from 'react';
+import { errorText } from '../api.js';
 
 const ToastContext = createContext(null);
 
@@ -17,7 +18,7 @@ export function ToastProvider({ children }) {
   const value = {
     success: (text) => push('success', text),
     // принимает ApiError или строку; показывает код ответа сервера
-    error: (err) => push('error', typeof err === 'string' ? err : `${err.status ? `${err.status}: ` : ''}${err.message}`),
+    error: (err) => push('error', errorText(err)),
   };
 
   return (

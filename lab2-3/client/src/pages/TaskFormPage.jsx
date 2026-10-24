@@ -49,7 +49,7 @@ export default function TaskFormPage() {
       toast.success(isNew ? 'Задача создана' : 'Изменения сохранены');
       navigate(`/tasks/${task.id}`);
     } catch (err) {
-      if (err.details) setErrors(err.details);
+      if (err.errors) setErrors(err.errors);
       toast.error(err);
     } finally {
       setSaving(false);

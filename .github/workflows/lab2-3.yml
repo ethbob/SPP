@@ -1,0 +1,67 @@
+# Автоматическая проверка кода лабораторных 2–3 при каждом push и pull request.
+# Файл лежит в корне репозитория (.github/workflows) — только оттуда его читает GitHub Actions.
+name: lab2-3 CI
+
+on:
+  push:
+    paths: ['lab2-3/**', '.github/workflows/lab2-3.yml']
+  pull_request:
+    paths: ['lab2-3/**', '.github/workflows/lab2-3.yml']
+
+jobs:
+  server:
+    name: API — линтер и тесты
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lab2-3/server
+    # временная база PostgreSQL только на время тестов
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+          POSTGRES_DB: tasks_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d tasks_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      DATABASE_URL: postgres://app:app@localhost:5432/tasks_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lab2-3/server/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+  client:
+    name: Клиент — линтер и сборка
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lab2-3/client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: lab2-3/client/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  docker:
+    name: Сборка Docker-образов
+    runs-on: ubuntu-latest
+    needs: [server, client]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build
+        working-directory: lab2-3

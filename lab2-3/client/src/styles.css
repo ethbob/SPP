@@ -151,3 +151,37 @@ button:disabled, select:disabled { opacity: .6; cursor: default; }
 }
 .toast-success { background: var(--done); }
 .toast-error { background: var(--danger); }
+
+/* ---- лаба 3: авторизация, роли, сессии ---- */
+.nav { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.nav a:not(.btn):not(.brand) { color: var(--muted); text-decoration: none; font-size: 14px; }
+.nav a.active:not(.brand) { color: var(--text); font-weight: 600; }
+.whoami { font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.topbar-inner { min-height: 56px; height: auto; flex-wrap: wrap; gap: 8px; padding-top: 8px; padding-bottom: 8px; }
+
+.badge.role-user { background: #6b7280; }
+.badge.role-manager { background: #7c5cd6; }
+.badge.role-admin { background: #c93a3a; }
+.badge-inline { margin-left: 8px; font-size: 11px; padding: 1px 8px; }
+
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-left: auto; }
+.segmented button { border: 0; background: var(--card); padding: 7px 14px; font: inherit; cursor: pointer; color: var(--muted); }
+.segmented button.active { background: var(--accent); color: var(--accent-text); }
+
+.auth-wrap { display: flex; justify-content: center; padding-top: 24px; }
+.auth-card { width: 100%; max-width: 420px; }
+.auth-card h1 { margin-top: 0; }
+.auth-card .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+.auth-card label { font-weight: 600; font-size: 14px; }
+
+.alert-ok { background: #e7f6ee; color: var(--done); border-color: #bfe5cf; }
+.alert-warn { background: #fff5e0; color: #8a5a00; border-color: #f2d9a6; }
+
+.demo { margin-top: 16px; font-size: 14px; color: var(--muted); }
+.demo summary { cursor: pointer; }
+.demo ul { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.demo li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.demo code { font-size: 12px; }
+
+.link-btn { border: 0; background: none; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; word-break: break-all; text-align: left; }
+.row-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }

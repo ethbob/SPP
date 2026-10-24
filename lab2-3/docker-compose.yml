@@ -19,17 +19,32 @@ services:
       timeout: 3s
       retries: 10
 
+  # Тестовый почтовый сервер: принимает письма по SMTP и показывает их в веб-интерфейсе
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: spp_lab2_mail
+    ports:
+      - "8025:8025" # веб-интерфейс с письмами: http://localhost:8025
+
   api:
     build: ./server
     container_name: spp_lab2_api
     environment:
       DATABASE_URL: postgres://app:app@db:5432/tasks
       MAX_FILE_SIZE_MB: 10
+      JWT_SECRET: ${JWT_SECRET:-spp-lab3-dev-secret-change-me} # ключ подписи токенов
+      APP_URL: http://localhost:8080 # адрес клиента для ссылок в письмах
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      LOG_LEVEL: info
+      SEED_DEMO_USERS: "true" # демо-пользователи admin / manager / user
     volumes:
       - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     restart: unless-stopped
 
   web:

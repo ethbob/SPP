@@ -1,9 +1,10 @@
-// Бизнес-логика задач: проверка данных и запросы к БД.
-// Тот же сервис, что и в лабе 1, только наружу отдаёт объекты для JSON (camelCase).
+// Бизнес-логика задач: проверка данных, права владельца и запросы к БД.
+// Основа — сервис из лаб 1–2; в лабе 3 добавлен владелец задачи и проверка прав.
 const fs = require('fs/promises');
 const path = require('path');
 const db = require('../db');
-const { ValidationError } = require('../middleware/errors');
+const { ValidationError, HttpError, forbidden } = require('../middleware/errors');
+const { can } = require('../permissions');
 
 const STATUSES = ['todo', 'in_progress', 'done'];
 const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '..', '..', 'uploads');
@@ -77,6 +78,8 @@ function toTask(row) {
     overdue: Boolean(row.due_date && row.status !== 'done' && row.due_date < today),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    ownerId: row.user_id,
+    owner: row.user_id ? { id: row.user_id, name: row.owner_name, email: row.owner_email } : null,
     ...(row.attachments_count !== undefined && { attachmentsCount: row.attachments_count }),
   };
 }
@@ -93,43 +96,66 @@ function toAttachment(row) {
   };
 }
 
-async function list({ status } = {}) {
+const OWNER_COLS = 'u.name AS owner_name, u.email AS owner_email';
+
+// user видит только свои задачи; manager и admin — все (scope=all) или свои (scope=mine)
+async function list({ status, scope }, user) {
   const params = [];
-  let where = '';
+  const where = [];
   if (status) {
     params.push(status);
-    where = 'WHERE t.status = $1';
+    where.push(`t.status = $${params.length}`);
+  }
+  if (!can(user.role, 'tasks:read:any') || scope === 'mine') {
+    params.push(user.id);
+    where.push(`t.user_id = $${params.length}`);
   }
   const { rows } = await db.query(
-    `SELECT t.*, COUNT(a.id)::int AS attachments_count
+    `SELECT t.*, ${OWNER_COLS}, COUNT(a.id)::int AS attachments_count
        FROM tasks t
+       LEFT JOIN users u ON u.id = t.user_id
        LEFT JOIN attachments a ON a.task_id = t.id
-       ${where}
-      GROUP BY t.id
+       ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+      GROUP BY t.id, u.id
       ORDER BY (t.status = 'done'), t.due_date NULLS LAST, t.id DESC`,
     params,
   );
   return rows.map(toTask);
 }
 
-async function exists(id) {
-  const { rowCount } = await db.query('SELECT 1 FROM tasks WHERE id = $1', [id]);
-  return rowCount > 0;
+// Проверка прав на конкретную задачу: своя — по правилу :own, чужая — по правилу :any.
+// Задача существует, но прав нет → 403 Forbidden.
+function assertAccess(user, task, action) {
+  const own = task.ownerId === user.id;
+  if (own ? can(user.role, `tasks:${action}:own`) : can(user.role, `tasks:${action}:any`)) return;
+  const words = { read: 'просмотр', update: 'изменение', delete: 'удаление' };
+  throw forbidden(`Нет прав на ${words[action]} чужой задачи`);
+}
+
+// Загрузить задачу и проверить права; нет задачи → 404
+async function getFor(user, id, action = 'read') {
+  const task = await get(id);
+  if (!task) throw new HttpError(404, `Задача ${id} не найдена`);
+  assertAccess(user, task, action);
+  return task;
 }
 
 async function get(id) {
-  const { rows } = await db.query('SELECT * FROM tasks WHERE id = $1', [id]);
+  const { rows } = await db.query(
+    `SELECT t.*, ${OWNER_COLS} FROM tasks t LEFT JOIN users u ON u.id = t.user_id WHERE t.id = $1`,
+    [id],
+  );
   if (!rows[0]) return null;
   const { rows: files } = await db.query('SELECT * FROM attachments WHERE task_id = $1 ORDER BY id', [id]);
   return { ...toTask(rows[0]), attachments: files.map(toAttachment) };
 }
 
-async function create(body) {
+async function create(body, user) {
   const t = validate(body);
   const { rows } = await db.query(
-    `INSERT INTO tasks (title, description, status, due_date)
-     VALUES ($1, $2, $3, $4) RETURNING id`,
-    [t.title, t.description, t.status, t.dueDate],
+    `INSERT INTO tasks (title, description, status, due_date, user_id)
+     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+    [t.title, t.description, t.status, t.dueDate, user.id],
   );
   return get(rows[0].id);
 }
@@ -166,8 +192,12 @@ async function addAttachment(taskId, file) {
   return toAttachment(rows[0]);
 }
 
+// Файл вместе с владельцем задачи — для проверки прав
 async function getAttachment(id) {
-  const { rows } = await db.query('SELECT * FROM attachments WHERE id = $1', [id]);
+  const { rows } = await db.query(
+    'SELECT a.*, t.user_id AS owner_id FROM attachments a JOIN tasks t ON t.id = a.task_id WHERE a.id = $1',
+    [id],
+  );
   return rows[0] || null;
 }
 
@@ -182,7 +212,8 @@ module.exports = {
   STATUSES,
   UPLOAD_DIR,
   list,
-  exists,
+  assertAccess,
+  getFor,
   get,
   create,
   update,

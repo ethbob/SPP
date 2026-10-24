@@ -7,6 +7,7 @@ import StatusBadge from '../components/StatusBadge.jsx';
 import StatusSelect from '../components/StatusSelect.jsx';
 import ErrorBox from '../components/ErrorBox.jsx';
 import { useToast } from '../components/Toasts.jsx';
+import { useAuth } from '../components/Auth.jsx';
 
 export default function TaskPage() {
   const { id } = useParams();
@@ -17,6 +18,7 @@ export default function TaskPage() {
   const [busy, setBusy] = useState(false);
   const [uploadError, setUploadError] = useState(null);
   const fileInput = useRef(null);
+  const { user, can } = useAuth();
 
   const load = useCallback(async () => {
     setError(null);
@@ -89,13 +91,26 @@ export default function TaskPage() {
     return (
       <>
         <p><Link className="link-muted" to="/">← Все задачи</Link></p>
-        {error.status === 404
-          ? <div className="empty"><h1>404</h1><p>{error.message}</p></div>
+        {[403, 404].includes(error.status)
+          ? <div className="empty"><h1>{error.status}</h1><p>{error.message}</p></div>
           : <ErrorBox error={error} onRetry={load} />}
       </>
     );
   }
   if (!task) return <div className="empty">Загрузка…</div>;
+
+  // Кнопки показываем по правам; сервер всё равно проверяет их сам
+  const own = task.ownerId === user.id;
+  const canEdit = own || can('tasks:update:any');
+  const canDelete = own ? can('tasks:delete:own') : can('tasks:delete:any');
+
+  async function download(file) {
+    try {
+      await api.downloadFile(file);
+    } catch (err) {
+      toast.error(err);
+    }
+  }
 
   return (
     <>
@@ -113,6 +128,8 @@ export default function TaskPage() {
             {task.dueDate ? formatDate(task.dueDate) : 'не указан'}
             {task.overdue && ' · просрочена'}
           </dd>
+          <dt>Владелец</dt>
+          <dd>{task.owner ? `${task.owner.name} (${task.owner.email})` : '—'}{own && ' — вы'}</dd>
           <dt>Создана</dt>
           <dd>{new Date(task.createdAt).toLocaleString('ru-RU')}</dd>
         </dl>
@@ -122,9 +139,10 @@ export default function TaskPage() {
           : <p className="link-muted">Описания нет.</p>}
 
         <div className="actions">
-          <StatusSelect value={task.status} onChange={changeStatus} disabled={busy} aria-label="Статус задачи" />
-          <Link className="btn" to={`/tasks/${task.id}/edit`}>Редактировать</Link>
-          <button className="btn btn-danger" onClick={remove}>Удалить</button>
+          <StatusSelect value={task.status} onChange={changeStatus} disabled={busy || !canEdit} aria-label="Статус задачи" />
+          {canEdit && <Link className="btn" to={`/tasks/${task.id}/edit`}>Редактировать</Link>}
+          {canDelete && <button className="btn btn-danger" onClick={remove}>Удалить</button>}
+          {!canEdit && <span className="link-muted">Только просмотр</span>}
         </div>
       </div>
 
@@ -136,20 +154,22 @@ export default function TaskPage() {
           <ul className="files">
             {task.attachments.map((a) => (
               <li key={a.id}>
-                <a href={a.url} download>{a.name}</a>
+                <button className="link-btn" onClick={() => download(a)}>{a.name}</button>
                 <span className="link-muted">{formatSize(a.size)}</span>
-                <button className="btn btn-small btn-ghost" title="Удалить файл" onClick={() => removeFile(a)}>✕</button>
+                {canEdit && <button className="btn btn-small btn-ghost" title="Удалить файл" onClick={() => removeFile(a)}>✕</button>}
               </li>
             ))}
           </ul>
         )}
 
+        {canEdit && (<>
         <form className="upload" onSubmit={upload}>
           <input type="file" ref={fileInput} multiple />
           <button className="btn" type="submit" disabled={busy}>{busy ? 'Загрузка…' : 'Загрузить'}</button>
         </form>
         <div className="hint">До 5 файлов за раз, каждый не больше 10 МБ.</div>
         {uploadError && <div className="error">{uploadError}</div>}
+        </>)}
       </div>
     </>
   );

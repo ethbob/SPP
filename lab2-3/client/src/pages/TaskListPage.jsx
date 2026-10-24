@@ -7,10 +7,15 @@ import { formatDate } from '../format.js';
 import StatusSelect from '../components/StatusSelect.jsx';
 import ErrorBox from '../components/ErrorBox.jsx';
 import { useToast } from '../components/Toasts.jsx';
+import { useAuth } from '../components/Auth.jsx';
 
 export default function TaskListPage() {
   const [params, setParams] = useSearchParams();
   const status = STATUSES[params.get('status')] ? params.get('status') : '';
+  const { user, can } = useAuth();
+  const seesAll = can('tasks:read:any'); // manager и admin видят задачи всех
+  const scope = seesAll && params.get('scope') === 'mine' ? 'mine' : 'all';
+  const canEdit = (t) => t.ownerId === user.id || can('tasks:update:any');
   const [tasks, setTasks] = useState(null);
   const [error, setError] = useState(null);
   const [savingId, setSavingId] = useState(null);
@@ -19,19 +24,23 @@ export default function TaskListPage() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setTasks(await api.listTasks(status));
+      setTasks(await api.listTasks({ status, scope: seesAll ? scope : undefined }));
     } catch (err) {
       setError(err);
     }
-  }, [status]);
+  }, [status, scope, seesAll]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  function changeFilter(value) {
-    setParams(value ? { status: value } : {});
+  function changeParam(key, value) {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setParams(next);
   }
+  const changeFilter = (value) => changeParam('status', value);
 
   async function changeStatus(task, newStatus) {
     setSavingId(task.id);
@@ -52,7 +61,7 @@ export default function TaskListPage() {
 
   return (
     <>
-      <h1>Список задач</h1>
+      <h1>{seesAll && scope === 'all' ? 'Все задачи' : 'Мои задачи'}</h1>
 
       <div className="filter">
         <label htmlFor="status-filter">Статус:</label>
@@ -63,6 +72,12 @@ export default function TaskListPage() {
           ))}
         </select>
         {status && <button className="btn btn-ghost" onClick={() => changeFilter('')}>Сбросить</button>}
+        {seesAll && (
+          <div className="segmented" role="group" aria-label="Чьи задачи">
+            <button className={scope === 'all' ? 'active' : ''} onClick={() => changeParam('scope', '')}>Все</button>
+            <button className={scope === 'mine' ? 'active' : ''} onClick={() => changeParam('scope', 'mine')}>Мои</button>
+          </div>
+        )}
       </div>
 
       {error && <ErrorBox error={error} onRetry={load} />}
@@ -80,6 +95,7 @@ export default function TaskListPage() {
           <thead>
             <tr>
               <th>Задача</th>
+              {seesAll && <th>Владелец</th>}
               <th>Срок</th>
               <th>Файлы</th>
               <th>Статус</th>
@@ -96,6 +112,7 @@ export default function TaskListPage() {
                     </div>
                   )}
                 </td>
+                {seesAll && <td className="task-desc">{task.owner ? task.owner.name : '—'}</td>}
                 <td className={`nowrap ${task.overdue ? 'overdue' : ''}`}>
                   {task.dueDate ? formatDate(task.dueDate) : '—'}
                   {task.overdue && <div className="overdue-note">просрочена</div>}
@@ -106,7 +123,7 @@ export default function TaskListPage() {
                     className="small-select"
                     aria-label="Статус задачи"
                     value={task.status}
-                    disabled={savingId === task.id}
+                    disabled={savingId === task.id || !canEdit(task)}
                     onChange={(v) => changeStatus(task, v)}
                   />
                 </td>

@@ -4,3 +4,4 @@ server/uploads/*
 !server/uploads/.gitkeep
 .env
 .DS_Store
+.idea/
