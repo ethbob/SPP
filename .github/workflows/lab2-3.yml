@@ -3,6 +3,7 @@
 name: lab2-3 CI
 
 on:
+  workflow_dispatch: # кнопка «Run workflow» на вкладке Actions — ручной запуск без коммита
   push:
     paths: ['lab2-3/**', '.github/workflows/lab2-3.yml']
   pull_request:
