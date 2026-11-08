@@ -85,8 +85,8 @@ after(async () => {
 describe('подключение и синхронизация', () => {
   test('новый игрок получает токен и полное состояние; по токену узнаётся снова', async () => {
     const a = client(app.port);
-    const w1 = await a.hello({ name: 'Аня' });
-    assert.equal(w1.you.name, 'Аня');
+    const w1 = await a.hello({ name: 'Макс' });
+    assert.equal(w1.you.name, 'Макс');
     assert.equal(w1.token.length, 64);
     assert.equal(w1.snapshot.match.status, 'running');
     await a.close();
