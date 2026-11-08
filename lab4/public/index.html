@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Кто быстрее</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='40' fill='%23ffb020'/></svg>">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">⚡ Кто быстрее</div>
+    <div class="status" id="status" data-state="connecting"><span class="dot"></span><span id="status-text">Подключение…</span></div>
+    <button class="me" id="me" type="button" title="Сменить имя"><span class="swatch" id="me-color"></span><span id="me-name">—</span> ✎</button>
+  </header>
+
+  <main class="layout">
+    <section class="arena-wrap">
+      <div class="matchbar">
+        <div class="matchbar-info"><span id="match-title">Матч</span><span id="match-timer">0:00</span></div>
+        <div class="progress"><div class="progress-fill" id="match-progress"></div></div>
+        <div class="myscore">Ваши очки: <b id="my-points">0</b></div>
+      </div>
+      <div class="arena" id="arena">
+        <canvas id="canvas"></canvas>
+        <div class="overlay hidden" id="break-overlay">
+          <h2>Матч окончен</h2>
+          <ol class="results" id="results"></ol>
+          <p class="next">Следующий матч через <b id="next-in">0</b> с</p>
+        </div>
+        <div class="offline-banner hidden" id="offline-banner">
+          Нет связи с сервером. Клики сохраняются и будут отправлены после переподключения.
+          <span id="queue-info"></span>
+        </div>
+      </div>
+      <p class="hint">Кликайте по кругам раньше других: обычный — 1 очко, маленький — 2, золотой — 5.</p>
+    </section>
+
+    <aside class="side">
+      <section class="panel">
+        <h3>Счёт матча</h3>
+        <ol class="list" id="scores"><li class="empty">Пока никто не набрал очков</li></ol>
+      </section>
+      <section class="panel">
+        <h3>В игре <span class="count" id="online-count">0</span></h3>
+        <ul class="list online" id="online"></ul>
+      </section>
+      <section class="panel">
+        <h3>Рекорды</h3>
+        <ol class="list" id="leaderboard"><li class="empty">Нет данных</li></ol>
+      </section>
+      <section class="panel feed-panel">
+        <h3>События</h3>
+        <ul class="feed" id="feed"></ul>
+      </section>
+    </aside>
+  </main>
+
+  <dialog id="name-dialog">
+    <form method="dialog" id="name-form">
+      <h2>Как вас зовут?</h2>
+      <p>Имя увидят другие игроки.</p>
+      <input id="name-input" maxlength="24" required autocomplete="nickname" placeholder="Например, Аня">
+      <div class="dialog-actions"><button class="btn primary" type="submit">Играть</button></div>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- Обычные ES-модули браузера: без сборщика и без фреймворков -->
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

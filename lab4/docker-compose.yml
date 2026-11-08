@@ -1,0 +1,36 @@
+# Своё имя проекта — не пересекается с контейнерами других лаб
+name: spp-lab4
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: spp_lab4_db
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: game
+    ports:
+      - "5435:5432" # для разработки без Docker и тестов; 5432–5434 уже заняты
+    volumes:
+      - pgdata:/var/lib/postgresql/data # данные игры переживают перезапуск
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d game"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    container_name: spp_lab4_app
+    environment:
+      DATABASE_URL: postgres://app:app@db:5432/game
+      LOG_LEVEL: info
+    ports:
+      - "8090:3000" # игра: http://localhost:8090
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
